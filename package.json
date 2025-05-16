@@ -1,0 +1,10 @@
+{
+  "name": "singhskaurs-blog",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Development mode'",
+    "build": "echo 'Build completed'",
+    "start": "echo 'Starting server'"
+  }
+}
