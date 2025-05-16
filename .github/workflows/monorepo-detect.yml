@@ -1,0 +1,104 @@
+name: Monorepo App Detection
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    name: Detect Changed Apps
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.filter.outputs.changes }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Detect file changes
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          list-files: json
+          filters: |
+            changes:
+              - 'apps/*/package.json'
+              - 'apps/*/src/**'
+              - 'apps/*/public/**'
+              - 'apps/*/vercel.json'
+              
+      - name: List changed apps
+        run: echo "Changed apps: ${{ steps.filter.outputs.changes }}"
+
+  validate-apps:
+    name: Validate Changed Apps
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.apps != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJson(needs.detect-changes.outputs.apps) }}
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Extract app name
+        id: extract
+        run: |
+          APP_PATH="${{ matrix.app }}"
+          APP_NAME=$(echo $APP_PATH | sed -E 's/apps\/([^\/]+)\/.*/\1/')
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          if [ -f "apps/${{ steps.extract.outputs.app_name }}/package.json" ]; then
+            cd apps/${{ steps.extract.outputs.app_name }}
+            npm ci
+          fi
+          
+      - name: Validate app config
+        run: |
+          APP_DIR="apps/${{ steps.extract.outputs.app_name }}"
+          
+          # Check for required files
+          if [ ! -f "$APP_DIR/vercel.json" ]; then
+            echo "::error::Missing vercel.json in $APP_DIR"
+            exit 1
+          fi
+          
+          if [ ! -f "$APP_DIR/package.json" ]; then
+            echo "::error::Missing package.json in $APP_DIR"
+            exit 1
+          fi
+          
+          # Check for build script
+          if ! grep -q "\"build\":" "$APP_DIR/package.json"; then
+            echo "::error::Missing build script in $APP_DIR/package.json"
+            exit 1
+          fi
+          
+      - name: Build app
+        run: |
+          cd apps/${{ steps.extract.outputs.app_name }}
+          npm run build
+          
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## App Validation: ${{ steps.extract.outputs.app_name }}\n\n✅ Build successful\n✅ Config files validated\n\nPlease complete the deployment checklist for this app before merging.`
+            });

@@ -1,0 +1,56 @@
+name: Vercel Production Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build check
+        run: npm run build
+        
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+        
+      - name: Deploy to Vercel
+        run: |
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          
+      - name: Create deployment summary
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { GITHUB_SHA } = process.env;
+            const shortSHA = GITHUB_SHA.substring(0, 7);
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Deploy] Production Deployment ${shortSHA}`,
+              body: `# ✅ Production Deployment Complete\n\nDeployment of commit ${shortSHA} has been completed.\n\n## Deployment Details\n- **Commit**: ${GITHUB_SHA}\n- **Branch**: main\n- **Deployed by**: GitHub Actions\n\nPlease verify the deployment using the checklist in \`.github/ISSUE_TEMPLATE/vercel_deployment_checklist.md\``,
+              labels: ['deployment', 'vercel']
+            });

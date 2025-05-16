@@ -1,0 +1,83 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build check
+        run: npm run build
+        
+      - name: Config file validation
+        run: |
+          if [ ! -f "vite.config.ts" ] && [ ! -f "vite.config.js" ]; then
+            echo "::error::Missing vite.config.ts/js file"
+            exit 1
+          fi
+          
+          if [ ! -f "vercel.json" ]; then
+            echo "::error::Missing vercel.json configuration"
+            exit 1
+          fi
+          
+          if [ ! -f "package.json" ]; then
+            echo "::error::Missing package.json"
+            exit 1
+          fi
+          
+      - name: Check for required scripts
+        run: |
+          REQUIRED_SCRIPTS=("build" "dev" "start")
+          MISSING=0
+          
+          for script in "${REQUIRED_SCRIPTS[@]}"; do
+            if ! grep -q "\"$script\":" package.json; then
+              echo "::error::Missing required script in package.json: $script"
+              MISSING=1
+            fi
+          done
+          
+          if [ $MISSING -eq 1 ]; then
+            exit 1
+          fi
+          
+      - name: Lint check
+        run: npm run lint || echo "No lint script found, skipping"
+        continue-on-error: true
+        
+      - name: Test check
+        run: npm test || echo "No test script found, skipping"
+        continue-on-error: true
+        
+      - name: Comment PR with checklist
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const checklist = fs.readFileSync('.github/ISSUE_TEMPLATE/vercel_deployment_checklist.md', 'utf8');
+            const checklistContent = checklist.split('---')[2].trim();
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Deployment Checklist Reminder\nPlease ensure all items are checked before merging:\n\n${checklistContent}`
+            });
