@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Custom color extensions for Tailwind */
+@layer utilities {
+  .bg-amber-50 { background-color: #FFFBEB; }
+  .bg-amber-100 { background-color: #FEF3C7; }
+  .bg-amber-200 { background-color: #FDE68A; }
+  .bg-amber-500 { background-color: #F59E0B; }
+  .bg-amber-600 { background-color: #D97706; }
+  .bg-amber-800 { background-color: #92400E; }
+  
+  .bg-rose-50 { background-color: #FFF1F2; }
+  .bg-rose-100 { background-color: #FFE4E6; }
+  .bg-rose-200 { background-color: #FECDD3; }
+  .bg-rose-500 { background-color: #F43F5E; }
+  .bg-rose-600 { background-color: #E11D48; }
+  
+  .bg-emerald-50 { background-color: #ECFDF5; }
+  .bg-emerald-100 { background-color: #D1FAE5; }
+  .bg-emerald-200 { background-color: #A7F3D0; }
+  .bg-emerald-500 { background-color: #10B981; }
+  .bg-emerald-600 { background-color: #059669; }
+  
+  .bg-cyan-50 { background-color: #ECFEFF; }
+  .bg-cyan-100 { background-color: #CFFAFE; }
+  .bg-cyan-200 { background-color: #A5F3FC; }
+  .bg-cyan-500 { background-color: #06B6D4; }
+  .bg-cyan-600 { background-color: #0891B2; }
+  
+  .text-amber-500 { color: #F59E0B; }
+  .text-amber-600 { color: #D97706; }
+  .text-amber-800 { color: #92400E; }
+  
+  .text-rose-500 { color: #F43F5E; }
+  .text-rose-600 { color: #E11D48; }
+  
+  .text-emerald-500 { color: #10B981; }
+  .text-emerald-600 { color: #059669; }
+  
+  .text-cyan-500 { color: #06B6D4; }
+  .text-cyan-600 { color: #0891B2; }
+  
+  .border-amber-200 { border-color: #FDE68A; }
+  .border-rose-200 { border-color: #FECDD3; }
+  .border-emerald-200 { border-color: #A7F3D0; }
+  .border-cyan-200 { border-color: #A5F3FC; }
+  .border-blue-200 { border-color: #BFDBFE; }
+  .border-purple-200 { border-color: #DDD6FE; }
+  .border-green-200 { border-color: #A7F3D0; }
+  .border-red-200 { border-color: #FECACA; }
+  .border-yellow-200 { border-color: #FEF08A; }
+}
